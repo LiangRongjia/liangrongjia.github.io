@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>少爷的绩点</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div id="header-container">
+          <h1>少爷的绩点</h1>
+          <h2>平均绩点：</h2>
+          <span id="avgPoints"></span>
+          <button onclick="EventsCB.checkAll()">全部勾选</button>
+          <button onclick="EventsCB.checkNone()">全部清除</button>
+        </div>
+      </header>
+    </div>
+    <script>
+      /**
+       * db 对象为关系数据库，每个属性用 Array 模拟数据表，每个数据表包含多个对象表示数据条目
+       */
+      const db = {
+        /**
+         * semester 数据表记录学期
+         */
+        semester: [
+          { ID: 1, name: '2018-2019 学年第 1 学期' },
+          { ID: 2, name: '2018-2019 学年第 2 学期' },
+          { ID: 3, name: '2019-2020 学年第 1 学期' },
+          { ID: 4, name: '2019-2020 学年第 2 学期' },
+          { ID: 5, name: '2020-2021 学年第 1 学期' }
+        ],
+        /**
+         * class 数据表记录所有课程信息
+         * 其中学期信息外码引用 semester 表，起节省空间之用
+         */
+        class: [
+          // ID 留作标准模式，但这里没有用到，可以随便填
+          { ID: 0, semester: 1, name: '物理实验（上）', grades: '优', credits: 0.5, points: 5 },
+          { ID: 1, semester: 1, name: '思想道德修养与法律基础', grades: '优', credits: 3, points: 5 },
+          { ID: 2, semester: 1, name: '军事理论', grades: '中', credits: 1, points: 3 },
+          { ID: 3, semester: 1, name: '体育(1)', grades: '优', credits: 1, points: 5 },
+          { ID: 4, semester: 1, name: '工程实践', grades: '良', credits: 2, points: 4 },
+          { ID: 5, semester: 1, name: '高等数学(B)上', grades: '中', credits: 5, points: 3 },
+          { ID: 6, semester: 1, name: '国际交流英语视听说1', grades: '优', credits: 2, points: 5 },
+          { ID: 7, semester: 1, name: '大学英语五级', grades: '优', credits: 2, points: 5 },
+          { ID: 8, semester: 1, name: '日语二外(上)', grades: '优', credits: 4, points: 5 },
+          { ID: 9, semester: 1, name: 'C/C++程序设计', grades: '良', credits: 2.5, points: 4 },
+          { ID: 10, semester: 1, name: '新生教授研讨课（教授讲坛）', grades: '优', credits: 1, points: 5 },
+          { ID: 11, semester: 1, name: '机械制图(三)', grades: '优', credits: 3, points: 5 },
+          { ID: 12, semester: 1, name: '形势与政策(1)', grades: '优', credits: 0.5, points: 5 },
+          { ID: 13, semester: 2, name: '形势与政策(2)', grades: '优', credits: 0.5, points: 5 },
+          { ID: 13, semester: 2, name: '素描与写生', grades: '优', credits: 2, points: 5 },
+          { ID: 13, semester: 2, name: '电工实习', grades: '优', credits: 1, points: 5 },
+          { ID: 13, semester: 2, name: '电路理论', grades: '中', credits: 4, points: 3 },
+          { ID: 13, semester: 2, name: '高等数学(B)下', grades: '中', credits: 5, points: 3 },
+          { ID: 13, semester: 2, name: '线性代数B', grades: '良', credits: 3, points: 4 },
+          { ID: 13, semester: 2, name: '普通物理(B)上', grades: '中', credits: 3, points: 3 },
+          { ID: 13, semester: 2, name: '体育(2)', grades: '优', credits: 1, points: 5 },
+          { ID: 13, semester: 2, name: '科技文献检索与利用', grades: '良', credits: 1.5, points: 4 },
+          { ID: 13, semester: 2, name: '中国近现代史纲要', grades: '中', credits: 3, points: 3 },
+          { ID: 13, semester: 2, name: '物理实验（下）', grades: '良', credits: 1, points: 4 },
+          { ID: 13, semester: 3, name: '雕塑', grades: '良', credits: 2, points: 4 },
+          { ID: 14, semester: 3, name: '中国音乐与歌曲入门（中外）', grades: '良', credits: 1.5, points: 4 },
+          { ID: 15, semester: 3, name: '德语1', grades: '良', credits: 18, points: 4 },
+          { ID: 13, semester: 4, name: '德语2', grades: '良', credits: 18, points: 4 },
+          { ID: 13, semester: 4, name: '军训', grades: '优', credits: 2, points: 5 },
+          { ID: 13, semester: 5, name: '机器人与人工智能前沿', grades: '优', credits: 1.5, points: 5 },
+          { ID: 13, semester: 5, name: '电路实验', grades: '良', credits: 1, points: 4 },
+          { ID: 13, semester: 5, name: '英语笔译', grades: '优', credits: 2, points: 5 },
+          { ID: 13, semester: 5, name: '毛泽东思想和中国特色社会主义理论体系概论', grades: '优', credits: 5, points: 5 },
+          { ID: 13, semester: 5, name: '形势与政策(3)', grades: '优', credits: 0.5, points: 5 },
+          { ID: 13, semester: 5, name: '数据结构', grades: '良', credits: 2, points: 4 },
+          { ID: 13, semester: 5, name: '专业导论（信息类）', grades: '优', credits: 2, points: 5 },
+          { ID: 13, semester: 5, name: '概率论与数理统计', grades: '缓考', credits: 3, points: 0 },
+          { ID: 13, semester: 5, name: '普通物理(B)下', grades: '缓考', credits: 3, points: 0 },
+          { ID: 13, semester: 5, name: '复变函数与积分变换', grades: '缓考', credits: 3, points: 0 },
+          { ID: 13, semester: 5, name: '模拟电子技术', grades: '缓考', credits: 3, points: 0 }
+        ]
+      }
+
+      const Components = {
+        /**
+         * @returns { HTMLElement }
+         * @param { 
+                    {
+                      semester: {
+                        ID: number;
+                        name: string;
+                      }[];
+                      class: {
+                        ID: number;
+                        semester: number;
+                        name: string;
+                        grades: string;
+                        credits: number;
+                        points: number;
+                      }[]; 
+                    }
+                  } db
+         * pure
+         */
+        Main: function (db) {
+          const comp_Main = document.createElement('main')
+          const comp_Semesters = db.semester.map(semester => Components.Semester(semester, db.class.filter(classItem => classItem.semester === semester.ID)))
+          comp_Semesters.reverse().forEach(item => { comp_Main.appendChild(item) });
+          return comp_Main
+        },
+        /** 
+         * @returns { HTMLElement }
+         * @param semester
+         * @param classList
+         * pure
+         */
+        Semester: function (semester, classList) {
+          const comp_Semester = document.createElement('div')
+          comp_Semester.setAttribute('class', 'semester-card')
+          comp_Semester.appendChild(Components.SemesterTitleBar(semester))
+          comp_Semester.appendChild(Components.ClassList(classList))
+          return comp_Semester
+        },
+        /**
+         * @returns { HTMLElement }
+         * @param { Object } semester
+         * pure
+         */
+        SemesterTitleBar: function (semester) {
+          const comp_SemesterTitleBar = document.createElement('div')
+          comp_SemesterTitleBar.setAttribute('class', 'semester-title-bar')
+
+          const comp_Title = document.createElement('h1')
+          comp_Title.appendChild(document.createTextNode(semester.name))
+          
+          const comp_SelectButton = document.createElement('button')
+          comp_SelectButton.appendChild(document.createTextNode('勾选学期'))
+          comp_SelectButton.onclick = () => { EventsCB.checkSemester(semester.ID) }
+
+          const comp_OnlySelectButton = document.createElement('button')
+          comp_OnlySelectButton.appendChild(document.createTextNode('仅本学期'))
+          comp_OnlySelectButton.onclick = () => { EventsCB.onlyCheckSemester(semester.ID) }
+
+          comp_SemesterTitleBar.appendChild(comp_Title)
+          comp_SemesterTitleBar.append(comp_SelectButton)
+          comp_SemesterTitleBar.append(comp_OnlySelectButton)
+
+          return comp_SemesterTitleBar
+        },
+        /**
+         * @returns { HTMLElement }
+         * @param { Object } semester
+         * pure
+         */
+        SemesterOptions: function (semester) {
+          const comp_SemesterOptions = document.createElement('div')
+
+          const comp_SelectButton = document.createElement('button')
+          comp_SelectButton.appendChild(document.createTextNode('勾选学期'))
+          comp_SelectButton.onclick = () => { EventsCB.checkSemester(semester.ID) }
+
+          const comp_OnlySelectButton = document.createElement('button')
+          comp_OnlySelectButton.appendChild(document.createTextNode('仅本学期'))
+          comp_OnlySelectButton.onclick = () => { EventsCB.onlyCheckSemester(semester.ID) }
+
+          comp_SemesterOptions.append(comp_SelectButton)
+          comp_SemesterOptions.append(comp_OnlySelectButton)
+
+          return comp_SemesterOptions
+        },
+        /**
+         * @returns { HTMLElement }
+         * @param { Array } classList
+         * pure
+         */
+        ClassList: function (classList) {
+          const comp_ClassList = document.createElement('ul')
+          comp_ClassList.className = 'class-list'
+          classList.sort(Methods.descend)
+          classList.map(Components.ClassItem).forEach(item => comp_ClassList.appendChild(item))
+          return comp_ClassList
+        },
+        /**
+         * @returns { HTMLElement }
+         * @param { Object } classItem
+         * impure
+         */
+        ClassItem: function (classItem) {
+          const comp_ClassItem = document.createElement('li')
+          comp_ClassItem.className = 'class-item'
+
+          const comp_NameSpan = document.createElement('span')
+          comp_NameSpan.appendChild(document.createTextNode(classItem.name))
+          comp_NameSpan.className = 'class-name'
+
+          const comp_CreditsSpan = document.createElement('span')
+          comp_CreditsSpan.appendChild(document.createTextNode(classItem.credits))
+          comp_CreditsSpan.className = 'class-credits'
+
+          const comp_GradesSpan = document.createElement('span')
+          comp_GradesSpan.appendChild(document.createTextNode(classItem.grades))
+          comp_GradesSpan.className = 'class-grades'
+          
+          const comp_PointsSpan = document.createElement('span')
+          comp_PointsSpan.appendChild(document.createTextNode(classItem.points))
+          comp_PointsSpan.className = 'class-points'
+
+          const comp_CheckBox = document.createElement('input')
+          comp_CheckBox.className = 'class-checkbox'
+          comp_CheckBox.type = 'checkbox'
+          comp_CheckBox.setAttribute('credits', classItem.credits)
+          comp_CheckBox.setAttribute('points', classItem.points)
+          comp_CheckBox.setAttribute('semester', classItem.semester)
+          comp_CheckBox.onchange = EventsCB.refreshAvgPoints
+
+          comp_ClassItem.appendChild(comp_NameSpan)
+          comp_ClassItem.appendChild(comp_CreditsSpan)
+          comp_ClassItem.appendChild(comp_GradesSpan)
+          comp_ClassItem.appendChild(comp_PointsSpan)
+          comp_ClassItem.appendChild(comp_CheckBox)
+
+          return comp_ClassItem
+        }
+      }
+      const Methods = {
+        /**
+         * @returns { number }
+         * @param { Object } classA
+         * @param { Object } classB
+         */
+        descend: function (classA, classB) {
+          if (classA.points < classB.points) {
+            return 1
+          }
+          else if (classA.points > classB.points) {
+            return -1
+          }
+          else {
+            if (classA.credits < classB.credits){
+              return 1
+            }
+            else if (classA.credits > classB.credits) {
+              return -1
+            }
+          }
+        }
+      }
+
+      const EventsCB = {
+        /**
+         * 渲染页面
+         */
+        render: function () {
+          document.getElementById('app').appendChild(Components.Main(db))
+        },
+        /**
+         * 刷新平均绩点
+         */
+        refreshAvgPoints: function () {
+          const checkboxList = document.getElementsByClassName('class-checkbox')
+          var sum = 0
+          var creditsSum = 0
+          for(var i = 0; i < checkboxList.length; i++){
+            if(checkboxList[i].checked){
+              sum += parseFloat(checkboxList[i].getAttribute('credits')) * parseFloat(checkboxList[i].getAttribute('points'))
+              creditsSum += parseFloat(checkboxList[i].getAttribute('credits'))
+            }
+          }
+          var avgPoints = sum / creditsSum
+          document.getElementById('avgPoints').innerText = Number.isNaN(avgPoints) ? '未勾选' : avgPoints.toFixed(2).toString()
+        },
+        /**
+         * 勾选学期
+         * @param { number } ID
+         */
+        checkSemester: function (ID) {
+          const checkboxList = document.getElementsByClassName('class-checkbox')
+          for(var i = 0; i < checkboxList.length; i++) {
+            if(parseInt(checkboxList[i].getAttribute('semester')) == ID) {
+              checkboxList[i].checked = true
+              checkboxList[i].onchange()
+            }
+          }
+        },
+        /**
+         * 仅勾选该学期
+         * @param { number } ID
+         */
+        onlyCheckSemester: function (ID) {
+          const checkboxList = document.getElementsByClassName('class-checkbox')
+          for(var i = 0; i < checkboxList.length; i++) {
+            if(parseInt(checkboxList[i].getAttribute('semester')) == ID) {
+              checkboxList[i].checked = true
+            }
+            else {
+              checkboxList[i].checked = false
+            }
+            checkboxList[i].onchange()
+          }
+        },
+        /**
+         * 勾选所有课程
+         */
+        checkAll: function () {
+          const checkboxList = document.getElementsByClassName('class-checkbox')
+          for(var i = 0; i < checkboxList.length; i++){
+            checkboxList[i].checked = true
+            checkboxList[i].onchange()
+          }
+        },
+        /**
+         * 取消全部勾选
+         */
+        checkNone: function () {
+          const checkboxList = document.getElementsByClassName('class-checkbox')
+          for(var i = 0; i < checkboxList.length; i++){
+            checkboxList[i].checked = false
+            checkboxList[i].onchange()
+          }
+        }
+      }
+
+      window.onload = () => {
+        EventsCB.render()
+        EventsCB.checkSemester(db.semester.reduce((acc, cur) => isNaN(acc) || cur.ID > acc ? cur.ID : acc))
+      }
+
+    </script>
+    <style>
+      *{
+        margin: 0px;
+        padding: 0px;
+      }
+      body{
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        background-color: #fafafa;
+      }
+      #app{
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        overflow: overlay;
+      }
+      button{
+        padding: 4px 8px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border: none;
+        box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+      }
+      header{
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: 48px;
+        background-color:rgba(0, 113, 197, 0.7);
+        color: white;
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.2);
+      }
+      #header-container{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 700px;
+        max-width: 960px;
+        height: 100%;
+      }
+      #header-container>h1{
+        font-size: 20px;
+        font-weight: normal;
+        flex-grow: 1;
+      }
+      #header-container>h2{
+        font-size: 16px;
+        font-weight: bold;
+        flex-grow: 1;
+        text-align: right;
+        font-weight: normal;
+      }
+      #header-container>span{
+        flex-grow: 1;
+      }
+      #header-container>button{
+        margin-left: 12px;
+      }
+      main{
+        display: flex;
+        min-width: 700px;
+        max-width: 960px;
+        flex-direction: column;
+        align-self: center;
+        align-items: stretch;
+        padding: 48px 24px 24px 24px 
+      }
+      .semester-card{
+        padding: 24px;
+        margin: 24px 0px 0px 0px;
+        border-radius: 8px;
+        background-color: white;
+        box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.2);
+      }
+      .semester-title-bar{
+        display: flex;
+        align-items: center;
+        height: 48px;
+        box-shadow: 0px 1px 0px 0px rgba(0, 0, 0, 0.2);
+      }
+      .semester-title-bar>h1{
+        flex-grow: 1;
+        font-size: 20px;
+      }
+      .semester-title-bar>button{
+        margin-left: 12px;
+      }
+      .class-list{
+        list-style: none;
+      }
+      .class-item{
+        display: flex;
+        align-items: center;
+        height: 36px;
+      }
+      .class-name{
+        flex-grow: 1;
+      }
+      .class-grades, .class-credits, .class-points{
+        width: 64px;
+        text-align: center;
+      }
+    </style>
+  </body>
+</html>
